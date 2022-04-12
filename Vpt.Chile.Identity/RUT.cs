@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Vpt.Chile.Identity.Exceptions;
 
 namespace Vpt.Chile.Identity
@@ -9,6 +11,7 @@ namespace Vpt.Chile.Identity
     public class RUT
     {
         private uint _numero;
+        private char _verifierDigit;
 
         public RUT(uint Numero, char DigitoVerificador)
         {
@@ -16,31 +19,29 @@ namespace Vpt.Chile.Identity
             {
                 throw new RutException("Digito verificador no valido");
             }
-            Number = Numero;
-            VerifierDigit = DigitoVerificador;
+            _numero = Numero;
+            _verifierDigit = DigitoVerificador;
         }
 
-        public uint Number
-        {
-            get { return _numero; }
+        public uint Number { get { return _numero; } }
 
-            set
-            {
-                if (value > 99999999 || value < 1) throw new ArgumentOutOfRangeException("El numero de RUT o RUN solo puede estar entre 1 y 99.999.999");
+        public char VerifierDigit { get { return _verifierDigit; } }
 
-                _numero = value;
-            }
-        }
-
-        public char VerifierDigit { get; set; }
-
+        /// <summary>
+        /// Create a RUT instance from a valid RUT or RUN string formatted like "12345678-9".
+        /// Anything with a different format is not parsed correctly
+        /// </summary>
+        /// <param name="rut">A valid string with number part between (exclusive) 100000 and 999999999 (inclusive) and a valid verifier digit</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentException"></exception>}
         public static RUT FromString(string rut)
         {
+            //TODO: Overload this function to support custom rut formats
             if (string.IsNullOrEmpty(rut)) throw new ArgumentNullException($"Argumento {nameof(rut)} no puede ser nulo o vacio");
             string notaInitial = "La cadena no contiene un Rut valido";
             string[] rutParts = rut.Split('-');
             uint numero = 0;
-            if (string.IsNullOrEmpty(rut)) throw new ArgumentNullException($"La cadena del parametro {nameof(rut)} es vacia o nula. Solo se aceptan cadenas de la forma 12345678-9");
             if (rutParts.Length != 2) throw new ArgumentException($"{notaInitial}. Asegurese de que la cadena tenga exactamente un guion separador");
             if (!uint.TryParse(rutParts[0], out numero)) throw new ArgumentException($"{notaInitial}. Asegurese de que la parte izquierda solo tenga numeros");
             if (rutParts[1].Length != 1) throw new ArgumentException($"{notaInitial}. El digito verificador solo debe tener maximo un caracter");
@@ -49,14 +50,20 @@ namespace Vpt.Chile.Identity
             return new RUT(numero, rutParts[1][0]);
         }
 
+        /// <summary>
+        /// Create an instance of RUT class from a valid number, the verifier digit is calculated implicitly
+        /// </summary>
+        /// <param name="rut">A valid number between (exclusive) 100000 and 999999999 (inclusive)</param>
+        /// <returns>An instance of <code>RUT</code> class </returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         public static RUT FromNumber(uint rut)
         {
-            if (rut <= 100000 && rut > 999999999) throw new ArgumentOutOfRangeException($"El valor de la parte numerica del rut excede el maximo permitido 999.999.999 o esta por debajo del minimo permitido 100.000"); ;
+            if (rut <= 100000 && rut > 999999999) throw new ArgumentOutOfRangeException(paramName: nameof(rut), message: $"El valor de la parte numerica del rut excede el maximo permitido 999.999.999 o esta por debajo del minimo permitido 100.000"); ;
 
             return new RUT(rut, CalculateVerifierDigit(rut));
         }
 
-        public static char CalculateVerifierDigit(uint rut)
+        private static char CalculateVerifierDigit(uint rut)
         {
             uint suma = 0;
             uint multiplicador = 1;
@@ -108,6 +115,13 @@ namespace Vpt.Chile.Identity
         {
             return $"{Number}-{VerifierDigit}";
         }
+        /// <summary>
+        /// 8-digits zero padded string version of a rut.
+        /// This representation is usefull for fixed lenght identifiers
+        /// </summary>
+        /// <param name="zeroPadding"></param>
+        /// <returns></returns>
+        [Obsolete("This method should be replaced for ToString(string format) which is more robust and flexible")]
         public string ToString(bool zeroPadding)
         {
             return $"{Number:D8}-{VerifierDigit}";
@@ -116,12 +130,86 @@ namespace Vpt.Chile.Identity
         public string ToString(string format)
         {
             //TODO: Must use RutFormatInfo to provide format handler
-            string.Format(new RutFormatInfo(), format, Number, VerifierDigit);
-            throw new NotImplementedException();
+            return Format(format);
+        }
+
+        private string Format(string format)
+        {
+            //TODO: Add support for escaped single quotes
+            if (format.Count(c => c == '\'') % 2 != 0)
+                throw new ArgumentException($"The format \"{format}\" is invalid. There are missing single quotes");
+
+            StringBuilder result = new(format);
+
+            Regex numFormatRegex = new(@"N(\d*)");
+            var matches = numFormatRegex.Matches(format);
+
+            foreach (Match match in matches)
+            {
+                //TODO: If possible, add test case to support integer overflow (strings reaaaallyyyyy long)
+                if (BetweenQuotes(format, match)) continue;
+
+                string length = match.Groups[1].Value;
+                result.Replace(match.Value, string.Format("{0:D" + length + "}", Number));
+            }
+
+            if (!BetweenQuotes(format, 'V'))
+                result.Replace('V', VerifierDigit);
+
+            if(!BetweenQuotes(format, 'M'))
+                result.Replace("M", Number.ToString("#,0", new CultureInfo("es-CL")) + "-" + VerifierDigit);
+
+            RemoveQuotes(result);
+            return result.ToString();
+        }
+
+        private void RemoveQuotes(StringBuilder format)
+        {
+            format.Replace("'", null);
+        }
+
+        private bool BetweenQuotes(string format, Match match)
+        {
+            var indexes = GetIndexes(format, '\'');
+
+            for(int i = 0; i < indexes.Count; i++)
+            {
+                if (match.Groups[0].Index > indexes[i] &&
+                    match.Groups[0].Index < indexes[Math.Min(indexes.Count - 1, i + 1)])
+                
+                    return true;
+                
+            }
+            return false;
+        }
+
+        private bool BetweenQuotes(string format, char c)
+        {
+            var indexes = GetIndexes(format, '\'');
+            var indexOfChar = format.IndexOf(c);
+
+            for (int i = 0; i < indexes.Count; i++)
+            {
+                if (indexOfChar > indexes[i] &&
+                    indexOfChar < indexes[Math.Min(indexes.Count - 1, i + 1)])
+                    return true;
+            }
+            return false;
+        }
+
+        private List<int> GetIndexes(string s, char c)
+        {
+            var foundIndexes = new List<int>();
+
+            // for loop end when i=-1 ('a' not found)
+            for (int i = s.IndexOf(c); i > -1; i = s.IndexOf(c, i + 1))
+            {
+                foundIndexes.Add(i);
+            }
+            return foundIndexes;
         }
 
         public static implicit operator string(RUT? rut) => rut?.ToString();
-        //public static explicit operator RUT(string rut) => RUT.FromString(rut);
         public static implicit operator RUT(string rut) => FromString(rut);
     }
 }
