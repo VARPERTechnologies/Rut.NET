@@ -135,6 +135,10 @@ namespace Vpt.Chile.Identity
 
         private string Format(string format)
         {
+            //TODO: Add support for escaped single quotes
+            if (format.Count(c => c == '\'') % 2 != 0)
+                throw new ArgumentException($"The format \"{format}\" is invalid. There are missing single quotes");
+
             StringBuilder result = new(format);
 
             Regex numFormatRegex = new(@"N(\d*)");
@@ -142,8 +146,9 @@ namespace Vpt.Chile.Identity
 
             foreach (Match match in matches)
             {
-                //TODO: If possible, add test case to support integer overflow
+                //TODO: If possible, add test case to support integer overflow (strings reaaaallyyyyy long)
                 if (BetweenQuotes(format, match)) continue;
+
                 string length = match.Groups[1].Value;
                 result.Replace(match.Value, string.Format("{0:D" + length + "}", Number));
             }
@@ -154,7 +159,13 @@ namespace Vpt.Chile.Identity
             if(!BetweenQuotes(format, 'M'))
                 result.Replace("M", Number.ToString("#,0", new CultureInfo("es-CL")) + "-" + VerifierDigit);
 
+            RemoveQuotes(result);
             return result.ToString();
+        }
+
+        private void RemoveQuotes(StringBuilder format)
+        {
+            format.Replace("'", null);
         }
 
         private bool BetweenQuotes(string format, Match match)
@@ -165,7 +176,9 @@ namespace Vpt.Chile.Identity
             {
                 if (match.Groups[0].Index > indexes[i] &&
                     match.Groups[0].Index < indexes[Math.Min(indexes.Count - 1, i + 1)])
+                
                     return true;
+                
             }
             return false;
         }
@@ -188,9 +201,9 @@ namespace Vpt.Chile.Identity
         {
             var foundIndexes = new List<int>();
 
+            // for loop end when i=-1 ('a' not found)
             for (int i = s.IndexOf(c); i > -1; i = s.IndexOf(c, i + 1))
             {
-                // for loop end when i=-1 ('a' not found)
                 foundIndexes.Add(i);
             }
             return foundIndexes;
