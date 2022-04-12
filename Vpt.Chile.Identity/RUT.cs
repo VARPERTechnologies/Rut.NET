@@ -142,25 +142,58 @@ namespace Vpt.Chile.Identity
 
             foreach (Match match in matches)
             {
+                //TODO: If possible, add test case to support integer overflow
+                if (BetweenQuotes(format, match)) continue;
                 string length = match.Groups[1].Value;
                 result.Replace(match.Value, string.Format("{0:D" + length + "}", Number));
             }
-            
-            result.Replace('V', VerifierDigit);
-            //var vOccurrences = format.Where(c => c == 'V');
-            //foreach (var vS in vOccurrences)
-            //{
-            //    ;
-            //}
-            //else if (format == "M")
-            //{
-            result.Replace("M", Number.ToString("N", new CultureInfo("es-CL")) + "-" + VerifierDigit);
-            //}
-            //else
-            //{
-            //    throw new FormatException(string.Format("The format of '{0}' is invalid.", format));
-            //}
+
+            if (!BetweenQuotes(format, 'V'))
+                result.Replace('V', VerifierDigit);
+
+            if(!BetweenQuotes(format, 'M'))
+                result.Replace("M", Number.ToString("#,0", new CultureInfo("es-CL")) + "-" + VerifierDigit);
+
             return result.ToString();
+        }
+
+        private bool BetweenQuotes(string format, Match match)
+        {
+            var indexes = GetIndexes(format, '\'');
+
+            for(int i = 0; i < indexes.Count; i++)
+            {
+                if (match.Groups[0].Index > indexes[i] &&
+                    match.Groups[0].Index < indexes[Math.Min(indexes.Count - 1, i + 1)])
+                    return true;
+            }
+            return false;
+        }
+
+        private bool BetweenQuotes(string format, char c)
+        {
+            var indexes = GetIndexes(format, '\'');
+            var indexOfChar = format.IndexOf(c);
+
+            for (int i = 0; i < indexes.Count; i++)
+            {
+                if (indexOfChar > indexes[i] &&
+                    indexOfChar < indexes[Math.Min(indexes.Count - 1, i + 1)])
+                    return true;
+            }
+            return false;
+        }
+
+        private List<int> GetIndexes(string s, char c)
+        {
+            var foundIndexes = new List<int>();
+
+            for (int i = s.IndexOf(c); i > -1; i = s.IndexOf(c, i + 1))
+            {
+                // for loop end when i=-1 ('a' not found)
+                foundIndexes.Add(i);
+            }
+            return foundIndexes;
         }
 
         public static implicit operator string(RUT? rut) => rut?.ToString();
