@@ -10,7 +10,7 @@
     <RepositoryUrl>https://github.com/VARPERTechnologies/Vpt.Chile.Identity</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <AssemblyName>$(MSBuildProjectName)</AssemblyName>
-    <VersionPrefix>1.1.0</VersionPrefix>
+    <VersionPrefix>1.1.2</VersionPrefix>
     <PackageProjectUrl>https://github.com/VARPERTechnologies/Vpt.Chile.Identity</PackageProjectUrl>
   </PropertyGroup>
 
