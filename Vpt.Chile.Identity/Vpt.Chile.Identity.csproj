@@ -8,6 +8,9 @@
     <Authors>Edixon Vargas</Authors>
     <Description>Provee clases necesarias para el procesamiento de RUTs y RUNs en Chile</Description>
     <RepositoryUrl>https://github.com/VARPERTechnologies/Vpt.Chile.Identity</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <AssemblyName>$(MSBuildProjectName)</AssemblyName>
+    <VersionPrefix>1.1.0</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup>
