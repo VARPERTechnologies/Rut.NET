@@ -4,16 +4,16 @@ This class gives the possibility to handle RUTs and RUNs in Chile as simple as p
 
 Features
 
-- RUT and RUN string parsing and validation with the static function FromString:
+* RUT and RUN string parsing and validation with the static function FromString:
 
 RUT rutValue = RUT.FromString("22222222-2"); // this will produce a non null rutValue
 RUT rutValue = RUT.FromString("22222222-1"); // this will throw an exception due this RUT has an invalid verifier digit
 
-- RUT and RUN verifier digit calculator with function FromNumber:
+* RUT and RUN verifier digit calculator with function FromNumber:
 
 RUT rutValue = RUT.FromNumber(12345678); // this will produce a non null rutValue = 12345678-5
 
-- Flexible ToString formatting:
+* Flexible ToString formatting:
 
 RUT rutValue = RUT.FromNumber(12345678);
 Console.WriteLine(rutValue.ToString()); // prints "12345678-5"
@@ -33,11 +33,11 @@ Console.WriteLine(rutValue.ToString("This will 'escape N' and not 'M' M"));
 
 This is useful to build custom strings with custom formats
 
-- Easy RUT or RUN validation with IsValid function
+* Easy RUT or RUN validation with IsValid function
 RUT.IsValid(12345678, '5'); //Returns true
 RUT.IsValid("12345678-5"); //Returns true
 
-- Implicit casting:
+* Implicit casting:
 //Before
 RUT rutValue = (RUT)"12345678-5";
 //Now
