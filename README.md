@@ -29,7 +29,7 @@ Console.WriteLine(rutValue.ToString("This will 'throw exception when trying to p
 //Throws exception because single quotes are not closed. This is an special character to include literals and avoid replacing N, V or M marks
 
 Console.WriteLine(rutValue.ToString("This will 'escape N' and not 'M' M")); 
-//prints "This will 'escape N' and not M 12.345.678-5"
+//prints "This will escape N and not M 12.345.678-5"
 ```
 This is useful to build custom strings with custom formats
 
