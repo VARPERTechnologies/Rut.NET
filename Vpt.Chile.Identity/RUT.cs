@@ -38,7 +38,7 @@ namespace Vpt.Chile.Identity
         public static RUT FromString(string rut)
         {
             //TODO: Overload this function to support custom rut formats
-            if (string.IsNullOrEmpty(rut)) throw new ArgumentNullException($"Argumento {nameof(rut)} no puede ser nulo o vacio");
+            if (string.IsNullOrEmpty(rut)) throw new ArgumentNullException($"{nameof(rut)} no puede ser nulo o vacio");
             string notaInitial = "La cadena no contiene un Rut valido";
             string[] rutParts = rut.Split('-');
             uint numero = 0;
